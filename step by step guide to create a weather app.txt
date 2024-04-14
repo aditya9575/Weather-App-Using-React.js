@@ -1,0 +1,818 @@
+create the react app and have a basic setup 
+
+we use rapid api and openweather api 
+
+----------------------------------------------------------------------
+
+open rapid api sign in -> search for cities option in search endpoints section 
+
+in code snippets option -> choose -> js -> fetch 
+
+now the 2nd api -> go to openweathermap.org -> signup -> click on account -> my services -> apikeys option -> here you'll get the api
+keys
+
+-----------------------------------------------------------------------
+
+
+Now we make our application 
+
+now we install two packages for this application -> 
+1st accordion ->
+ npm i react-accessible-accordion
+(Accordions are commonly used UI components that allow users to expand and collapse sections of content)
+
+2nd select async paginate ->
+ npm i react-select-async-paginate --force
+(The react-select-async-paginate library is useful in scenarios where you need a select component in your React application that can 
+handle asynchronous data loading and pagination effectively.)
+
+
+now run the application 
+
+--------------------------------------------------------------------------------------------------------------------------------------
+now we will have three components in our application 
+
+1 search component on top 
+2 for current weather 
+3 for the 5 day forecast 
+
+
+
+___________________________
+
+
+
+in src folder create another folder -> components 
+
+in component folder -> create folder -> search -> search.jsx file rafce in it and import this search component in our app.jsx
+
+(Note this search component will be using that async paginate package we installed before )
+
+in the main div inside the app function add a class named container and in app.css -> 
+.container{
+    max-width: 1080px;
+    margin: 20px auto;
+}
+
+now we add some global styles via index.css -> 
+
+
+
+
+
+
+
+
+
+===============================================================================
+
+now we make our search component -> we import the only component -> AsyncPaginate ->
+
+import {AsyncPaginate} from "react-select-async-paginate"
+
+
+now inside the div we use this component with various parameters ->
+
+    <AsyncPaginate
+placeholder="Search for city"
+debounceTimeout={600}
+value={search}
+onChange ={handleOnChange}
+    />
+
+[note this is how debounce works -> In the context of your code snippet with AsyncPaginate, the debounceTimeout prop is set to 600, 
+which means that when the user types in the search input, the actual search operation won't be triggered immediately. Instead, it
+will wait for 600 milliseconds after the user stops typing before it performs the search operation.]
+
+
+
+now we use useState hook above the return statement to create a state for updating the search data input field
+-> const [search , setSearch] = useState(null);
+
+
+now we assign the handleOnChange function to the onChange listener of our AsyncPaginate component
+
+now we define the handleOnChange function 
+-> 
+const handleOnChange = (searchData)=>{
+    setSearch(searchData);
+    onSearchChange(searchData)
+}
+
+now in our app.jsx -> in our search component we now passed in this newly created event listener and pass in the handleSearchChange -> 
+<Search onSearchChange={handleOnSearchChange}/>
+
+
+now above we define this handleOnSearchChange function -> 
+const handleOnSearchChange = (searchData) =>{
+  console.log(searchData);
+}
+
+
+[Note this is how the autocomplete seatch functionality is working -> In summary, the autocomplete functionality is achieved by
+ using the AsyncPaginate component from the react-select-async-paginate library within the Search component. The Search component 
+ manages the state of the search input and calls a callback function provided by the parent component (App) whenever there is a 
+ change in the search input. The parent component handles the search results by defining a callback function (handleOnSearchChange)
+  that is called when the search data changes.]
+
+===========================================================================================================
+
+NOW WHEN WE START SEARCHING WE NEED TO FETCH THE DATA 
+
+SO WE  pass in another parameter to our AsyncPaginate -> loadoptions -> loadOptions={loadOptions}
+
+now above we define the loadoptions function which will trigger the fetch api call and retrieve our data 
+
+const loadOptions = (inputValue)=>{
+  // here we make the api call to the endpoint of rapid api to fetch the details as needed 
+
+}
+
+
+so create a new file in our src folder to store our api end point -> api.js 
+
+-> go to rapid api copy the options and the fetch method and paste it in api.js and change it to geoApiOptions and export it
+
+i.e->
+const url = 'https://wft-geo-db.p.rapidapi.com/v1/geo/cities';
+const options = {
+	method: 'GET',
+	headers: {
+		'X-RapidAPI-Key': '9f648edb7emsh25da5cc23e05145p1d4564jsn8193b9e890c7',
+		'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
+	}
+};
+
+try {
+	const response = await fetch(url, options);
+	const result = await response.text();
+	console.log(result);
+} catch (error) {
+	console.error(error);
+}
+
+
+Now we destructure this api in the api.js only  to be used dynamically 
+-=>
+export const GEO_API_URL = 'https://wft-geo-db.p.rapidapi.com/v1/geo';
+
+export const geoApiOptions = {
+	method: 'GET',
+	headers: {
+		'X-RapidAPI-Key': '9f648edb7emsh25da5cc23e05145p1d4564jsn8193b9e890c7',
+		'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
+	}
+};
+
+
+
+Now we start by importing our geoApiOptions and GEO_API_URL in the search component we are making -> 
+import { geoApiOptions, GEO_API_URL } from "../../api";
+
+then now we make our loadOptions function work by applying the fetch functionality that will show the results as the user types
+something in the input field 
+
+1stly we make the api call using fetch api after passing in some preset parameters to our api as we need specific city data 
+
+->fetch(`${GEO_API_URL}/cities?minPopulation=1000000&namePrefix=${inputValue}`, geoApiOptions)
+
+2nd we track in the response given by the api's fetch call and then we return the response after mapping over it and retrieving 
+specific values like latitude , latitude , name , countryCode
+
+hence completing the api call and finally rendering the data as an auto complete feature which works on maiking fetch call as the user 
+types something in the AsyncPaginate element
+
+  const loadOptions = (inputValue) => {
+    // here we make the api call to the endpoint of rapid api to fetch the details as needed
+    // this inputValue is the value that is used inside the input and now we hit our url 
+    return fetch(`${GEO_API_URL}/cities?minPopulation=1000000&namePrefix=${inputValue}`, geoApiOptions)
+     .then(response => response.json())
+     .then((response) => {
+      return{
+        options: response.data.map( (city) => {
+          return {
+            value: `${city.latitude}  ${city.longitude}` ,
+            label: `${city.name}  ${city.countryCode}` , 
+          }
+        }),
+      };
+     })
+     .catch(error => console.error(error));
+     
+  };
+
+
+  [
+    Note:- Gist of the code till now -> we have an element AsyncPaginate in it we applied onChange listener which triggers the 
+    handleOnChange function 
+
+    const handleOnChange = (searchData) => {
+    setSearch(searchData);
+    onSearchChange(searchData);
+  };
+
+  this handleOnChange function registers the value of search by using the setSearch method of useState hook we defined above to 
+  keep in the track of the search 
+  and it also calls onSearchChange function and provides it with the search data 
+
+  now 
+  ]
+
+
+
+
+
+***************************************************************************************************************************************
+
+Now we make the next component > currentWeather.jsx -> rafce init 
+currentWeather.css
+
+now we include this in our app.jsx
+
+now in currentWeather.jsx file lets start by importing styles first ->import  "./currentWeather.css"
+
+now we have two sections
+
+1st->temprature
+    {/* first section of temprature starts here */}
+
+<div className='top'>
+   <div>
+          <p className="city">Mumbai</p>
+          <p className="weather-description">sunny</p>
+   </div>
+   {/* on the right side we will have image that will picturize the weather conditions */}
+  <img className='weather-icon' src="icons/01d.png" alt="weather"  />
+
+</div>
+
+
+    {/* first section of temprature ends here */}
+
+2nd-> other details     
+
+now we write css to make a box that displays current weather details->
+.weather{
+    width: 300px;
+    border-radius: 6px;
+    box-shadow: 10px -2px 20px 2px rgb(0, 0, 0 / 30%);
+    color: #fff;
+    background-color: #333;
+    margin: 20px auto 0 auto;
+    padding: 0 20px 20px 20px;
+}
+
+.top,
+.bottom{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.city{
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 1;
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.weather-description{
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1;
+    margin: 0;
+}
+
+.weather-icon{
+    width: 100px;
+}
+
+
+--------------------------------------------------------
+this was the top part now lets build the bottom part below the top part to include all the necessary labels that we can use from 
+open weather api ->
+
+ <div className="bottom">
+        <p className="temprature">18°C</p>
+        <div className="details">
+          <div className="parameter-row">
+            <span className="parameter-label ">Details</span>
+          </div>
+          <div className="parameter-row">
+            <span className="parameter-label">Feels like</span>
+            <span className="parameter-value">22°C</span>
+          </div>
+          <div className="parameter-row">
+            <span className="parameter-label">Wind</span>
+            <span className="parameter-value">2 m/s</span>
+          </div>
+          <div className="parameter-row">
+            <span className="parameter-label">Humidity</span>
+            <span className="parameter-value">15%</span>
+          </div>
+          <div className="parameter-row">
+            <span className="parameter-label">Pressure</span>
+            <span className="parameter-value">15 hPa</span>
+          </div>
+        </div>
+      </div>
+
+-----> 
+Now we style this bottom part in our css 
+.temprature{
+    font-weight: 600;
+    font-size: 70px;
+    width: auto;
+    letter-spacing: -5px;
+    margin: 10px 0;
+}
+
+.details{
+    width: 100%;
+    padding-left: 20px;
+}
+
+.parameter-row{
+    display: flex;
+    justify-content: space-between;
+}
+
+.parameter-label{
+   text-align: left;
+   font-weight: 400;
+   font-size: 12px;
+}
+
+.parameter-value{
+    text-align: right;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+
+****************______________________________________________________________________________________________________****************
+
+Till now we made a static weather widget now we need to implement actual data fetching and a dynamic weather widget
+
+-> Now in app.jsx -> 
+we start searching for data in our handleOnSearchChange function 
+
+so from the data being fetched we need to extract the value of latitude and longitude 
+i.e->
+const handleOnSearchChange = (searchData) =>{
+
+  //here we destructure the values being fetched as a response from the fetch call and extract the latitude & longitude 
+const [lat , lon] = searchData.value.split(" ");
+
+}
+
+we need to go to open weather api and check for the end point for current weather -> pricing -> current weather -> copy the url -> 
+https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API key}
+
+->
+Now as we are going to fetch using two api calls ->> 1st one for current weather and the 2nd one for weather forecast 
+we are going to use promises inorder to fetch both of these 
+
+but we make const to store the api base end point in our api.js file ->
+
+// new api info of open weather to fetch current weather and forecast 
+export const WEATHER_API_URL = "https://api.openweathermap.org/data/2.5"
+
+//key to be used in the fetch call  from my api keys -> 
+export const WEATHER_API_KEY = "d3bb231f7a795bd9c2e10096cc1fc0eb";
+
+
+
+now we can use them in our weather api call using fetch api after having the import statement on the top -> 
+
+//First fetch call to current weather 
+const currentWeatherFetch = fetch(`${WEATHER_API_URL}/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`);
+
+//Second fetch call to weather forecast
+//now again go to pricing tab of open weather api -> 3 hour forecast 5 days -> 
+const forecastFetch = fetch(`${WEATHER_API_URL}/forecast?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`);
+
+-> 
+now we use promise.all and pass in the two api calls that we just created to it all inside the handleOnSearchChange function -> 
+Promise.all([currentWeatherFetch , forecastFetch])
+      .then( async (response) =>{
+      const weatherResponse = await response[0].json();
+      const forecastResponse = await response[1].json();
+      })
+
+
+-> Now we make use of useState hooks to store these two 
+so at the top of our app function start by creating two states ->
+//using useState to keep a track of currentWeather and forecast
+  const[currentWeather, setCurrentWeather]=useState(null);
+  const[forecast, setForecast]=useState(null);
+
+
+->
+now we call in the set methods inside the promise
+// calling set functions to update the weather 
+      setCurrentWeather(weatherResponse);
+      setForecast(forecastResponse);       
+
+[NOTE this is the traditional way but we need to add in labels for our data so we need to use destructuring of labels from the data
+ being fetched and also the spread operator to finally get in the data  ]
+
+->
+//this function is getting the search data that is being entered in our component and its simply logging what is entered   
+const handleOnSearchChange = (searchData) =>{
+
+  //here we destructure the values being fetched as a response from the fetch call and extract the latitude & longitude 
+const [lat , lon] = searchData.value.split(/\s+/);
+
+// now we use promises to make 2 api calls 1 for current weather and 2 for weather forecast 
+
+//First fetch call to current weather 
+const currentWeatherFetch = fetch(`${WEATHER_API_URL}/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}`);
+//Second fetch call to weather forecast
+const forecastFetch = fetch(`${WEATHER_API_URL}/forecast?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}`);
+
+Promise.all([currentWeatherFetch , forecastFetch])
+      .then( async (response) =>{
+      const weatherResponse = await response[0].json();
+      const forecastResponse = await response[1].json();
+
+
+      // calling set functions to update the weather 
+      setCurrentWeather({city: searchData.label, ...weatherResponse});
+      setForecast({city: searchData.label, ...forecastResponse});
+      })
+      .catch((error)=>{
+        console.log(error);
+      })
+
+}
+
+
+-------------------------------------------->
+
+now to test if its working we log the variables above the return statement ->
+console.log(currentWeather);
+console.log(forecast);
+
+and if it showed the data after searching the city in the console then we are good to go 
+
+->
+now we want to pass this data to our current weather and then display this as our realtime data instead of our current dummy data 
+
+so in our app.jsx we check if the current weather data is there we now render it with a condition ->
+{currentWeather && <CurrentWeather data={currentWeather} />}
+
+and also in our currentWeather.jsx function we pass in {data} as a function parameter to be used there for displaying 
+
+so coming to currentWeather.jsx now we display the data by extracting it from the data variable passed 
+<p className="city">{data.city}</p>
+<p className="weather-description">{data.weather[0].description}</p>
+
+        <img className="weather-icon" src={`icons/${data.weather[0].icon}.png`} alt="weather" />
+
+============================This completes our top part=============================
+
+NOW WE MAKE IN DISPLAY THE DETAILS so we edit the other details part 
+
+        <p className="temprature">{Math.round(data.main.temp)}°C</p>
+            <span className="parameter-value">{Math.round(data.main.feels_like)}°C</span>
+            <span className="parameter-value">{data.wind.speed} m/s</span>
+            <span className="parameter-value">{data.main.humidity}%</span>
+            <span className="parameter-value">{data.main.pressure} hPa</span>
+
+
+this should make the weather widget dynamic so now test it out and see if we type weather a widget with dynamic data should pop and we 
+are good to go 
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
+Now we build forecast widget -> in component folder create a new folder and a file forecast -> forecast.jsx and forecast.css
+
+now we build our forecast widget 
+import{Accordion} from "react-accessible-accordion"
+
+<label className='title'> Daily </label>
+//this allowZeroExpanded method allows all the accordions to be closed and only open when tapped on
+<Accordion allowZeroExpanded>
+
+</Accordion> 
+
+now as we already handled the data fetching for forecast as well so we just simply use a check condition that if data is there we 
+pass in that data to forecast element in our app.jsx file 
+->{forecast && <ForeCast data={forecast} />}
+
+and in our forecast.jsx file we pass in this data as a receiving parameter
+
+->
+import React from "react";
+import {
+  Accordion,
+  AccordionItemHeading,
+  AccordionItemPanel,
+  AccordionItem,
+  AccordionItemButton,
+} from "react-accessible-accordion";
+
+// array for week day names
+const WEEK_DAYS = ["Monday" , "Tuesday" , "Wednesday" , "Thursday" , "Friday" , "Saturday" , "Sunday"];
+
+const ForeCast = ({ data }) => {
+
+
+    
+  return (
+    <div>
+      <label className="title"> Daily </label>
+      {/* this allowZeroExpanded method allows all the accordions to be closed and only open when tapped on */}
+      <Accordion allowZeroExpanded>
+        {data.list.splice(0, 7).map((item, idx) => (
+          <AccordionItem key={idx}>
+    {/* this part accordianItemHeading is the part that you'll see once the code is collapsed */}
+            <AccordionItemHeading>
+                <AccordionItemButton>
+                     {/* we want to print the day name here the image of the day and maximum temprature */}
+                     <div className="daily-item">
+                        <img src={`icons/${item.weather[0].icon}.png`} alt="weather" className="icon-small" />
+                        {/* this below will display the days using the array  */}
+                        <label className="day"></label>
+                     </div>
+                </AccordionItemButton>
+            </AccordionItemHeading>
+            <AccordionItemPanel></AccordionItemPanel>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </div>
+  );
+};
+
+export default ForeCast;
+
+
+----->Now after making the array of days we need to determine which day it is today as based on that day only we will be projecting the 
+forecast of next 5 days 
+so above the return statement we use getDate function for it 
+import React from "react";
+import {
+  Accordion,
+  AccordionItemHeading,
+  AccordionItemPanel,
+  AccordionItem,
+  AccordionItemButton,
+} from "react-accessible-accordion";
+
+// array for week day names
+const WEEK_DAYS = ["Monday" , "Tuesday" , "Wednesday" , "Thursday" , "Friday" , "Saturday" , "Sunday"];
+
+const ForeCast = ({ data }) => {
+
+// this returns a number and if its 2nd day so we cut first 2 days and make array of the next days left + current days passed     
+const dayInAWeek = new Date().getDay();
+const forecastDays = WEEK_DAYS.slice(dayInAWeek , WEEK_DAYS.length).concat(WEEK_DAYS.slice(0, dayInAWeek));
+
+//testing to see if this days splicing worked 
+// console.log(forecastDays);
+
+  return (
+    <div>
+      <label className="title"> Daily </label>
+      {/* this allowZeroExpanded method allows all the accordions to be closed and only open when tapped on */}
+      <Accordion allowZeroExpanded>
+        {data.list.splice(0, 7).map((item, idx) => (
+          <AccordionItem key={idx}>
+    {/* this part accordianItemHeading is the part that you'll see once the code is collapsed */}
+            <AccordionItemHeading>
+                <AccordionItemButton>
+                     {/* we want to print the day name here the image of the day and maximum temprature */}
+                     <div className="daily-item">
+                        <img src={`icons/${item.weather[0].icon}.png`} alt="weather" className="icon-small" />
+     {/* this below will display the days using the array that we got from slicing overall the intent is to get the left over days
+      data and then append the precious days that have been passed . again back to this new array so we get the data of a week
+       starting from any day   */}
+                        <label className="day">{forecastDays[idx]}</label>
+                        <label className="description">{item.weather[0].description}</label>
+                        <label className="min-max">{Math.round(item.main.temp_min)}°C / {Math.round(item.main.temp_max)}°C</label>
+
+                     </div>
+                </AccordionItemButton>
+            </AccordionItemHeading>
+            <AccordionItemPanel></AccordionItemPanel>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </div>
+  );
+};
+
+export default ForeCast;
+
+
+
+-------------------->
+Now we apply the styles to our forecast widget in forecast.css file 
+.title{
+font-size: 23px;
+font-weight: 700;
+}
+
+.daily-item{
+    background-color: #f5f5f5;
+    border-radius: 15;
+    height: 40px;
+    margin: 5px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 20px;
+}
+
+.icon-small{
+    width: 40px;
+}
+
+.day{
+    color: #212121;
+    flex: 1 1;
+    font-weight: 600;
+    margin-left: 15px;
+}
+
+.description{
+    flex: 1 1;
+    margin-right: 15px;
+    text-align: right;
+}
+
+.min_max{
+color: #757575;
+}
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+Now we create accorion part
+
+
+and this is the complete accordion part -> 
+import React from "react";
+import {
+  Accordion,
+  AccordionItemHeading,
+  AccordionItemPanel,
+  AccordionItem,
+  AccordionItemButton,
+} from "react-accessible-accordion";
+
+import "./forecast.css"
+
+// array for week day names
+const WEEK_DAYS = ["Monday" , "Tuesday" , "Wednesday" , "Thursday" , "Friday" , "Saturday" , "Sunday"];
+
+const ForeCast = ({ data }) => {
+
+// this returns a number and if its 2nd day so we cut first 2 days and make array of the next days left + current days passed     
+const dayInAWeek = new Date().getDay();
+const forecastDays = WEEK_DAYS.slice(dayInAWeek , WEEK_DAYS.length).concat(WEEK_DAYS.slice(0, dayInAWeek));
+
+//testing to see if this days splicing worked 
+// console.log(forecastDays);
+
+  return (
+    <div>
+      <label className="title"> Daily </label>
+      {/* this allowZeroExpanded method allows all the accordions to be closed and only open when tapped on */}
+      <Accordion allowZeroExpanded>
+        {data.list.splice(0, 7).map((item, idx) => (
+          <AccordionItem key={idx}>
+    {/* this part accordianItemHeading is the part that you'll see once the code is collapsed */}
+            <AccordionItemHeading>
+                <AccordionItemButton>
+                     {/* we want to print the day name here the image of the day and maximum temprature */}
+                     <div className="daily-item">
+                        <img src={`icons/${item.weather[0].icon}.png`} alt="weather" className="icon-small" />
+     {/* this below will display the days using the array that we got from slicing overall the intent is to get the left over days
+      data and then append the precious days that have been passed . again back to this new array so we get the data of a week
+       starting from any day   */}
+                        <label className="day">{forecastDays[idx]}</label>
+                        <label className="description">{item.weather[0].description}</label>
+                        <label className="min-max">{Math.round(item.main.temp_min)}°C / {Math.round(item.main.temp_max)}°C</label>
+
+                     </div>
+                </AccordionItemButton>
+            </AccordionItemHeading>
+            <AccordionItemPanel>
+                <div className="daily-details-grid">
+                   
+                   <div className="daily-details-grid-item">
+                     <label> Pressure </label>
+                     <label> {item.main.pressure} hPa</label>
+                   </div>
+ 
+                   <div className="daily-details-grid-item">
+                     <label> Humidity </label>
+                     <label> {item.main.humidity}%</label>
+                   </div>
+
+                   <div className="daily-details-grid-item">
+                     <label> Clouds </label>
+                     <label> {item.clouds.all}%</label>
+                   </div>
+
+                   <div className="daily-details-grid-item">
+                     <label> Wind Speed </label>
+                     <label> {item.wind.speed} m/s</label>  
+                   </div>
+
+                   <div className="daily-details-grid-item">
+                     <label> Sea Level </label>
+                     <label> {item.main.sea_level}m</label>  
+                   </div>
+
+                   <div className="daily-details-grid-item">
+                     <label> Feels Like </label>
+                     <label> {Math.round(item.main.feels_like)}°C</label>  
+                   </div>
+
+                </div>
+            </AccordionItemPanel>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </div>
+  );
+};
+
+export default ForeCast;
+
+
+now this is the complete css styling for accordion components->
+.title{
+font-size: 23px;
+font-weight: 700;
+}
+
+.daily-item{
+    background-color: #f5f5f5;
+    border-radius: 15;
+    height: 40px;
+    margin: 5px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 20px;
+}
+
+.icon-small{
+    width: 40px;
+}
+
+.day{
+    color: #212121;
+    flex: 1 1;
+    font-weight: 600;
+    margin-left: 15px;
+}
+
+.description{
+    flex: 1 1;
+    margin-right: 15px;
+    text-align: right;
+}
+
+.min_max{
+color: #757575;
+}
+
+.daily-details-grid{
+    grid-row-gap:0;
+    grid-column-gap:15px;
+    row-gap: 0;
+    column-gap: 15px;
+    display: grid;
+    flex: 1 1;
+    grid-template-columns: auto auto;
+    padding: 5px 15px;
+}
+
+.daily-details-grid-item{
+    display: flex;
+    height: 30px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.daily-details-grid-item label:first-child {
+ color:#757575;
+}
+
+.daily-details-grid-item label:last-child {
+    color:#212121;
+   }
+
+
+
+**************************************************************************************************************************************
+Now test every thing to work and --->This wraps up our weather project

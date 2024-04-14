@@ -1,0 +1,21 @@
+body {
+  background-image: url('./assets/background img.jpg'); /* Adjust the path as per your project structure */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin: 0; /* Remove default margin to ensure full screen coverage */
+  padding: 0; /* Remove default padding to ensure full screen coverage */
+  height: 100vh; /* Set height to 100% of viewport height */
+  justify-content: center; /* Center content horizontally */
+  align-items: center; /* Center content vertically */
+}
+
+
+.container {
+    max-width: 1080px;
+    margin: 20px auto; /* Center horizontally */
+    /* padding: 0 20px; Optional padding for better spacing */
+  }
+   
+
+  
